@@ -202,6 +202,17 @@
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+  .sync {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; font-weight: 600; padding: 9px 12px;
+    border-radius: 10px; margin-bottom: 12px; line-height: 1.35;
+  }
+  .sync::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
+  .sync.local { background: var(--surface-2); color: var(--ink-faint); }
+  .sync.enviando { background: var(--out-tint); color: var(--out); }
+  .sync.ok { background: var(--ok-tint); color: var(--ok); }
+  .sync.erro { background: var(--warn-tint); color: var(--warn); }
+
   .foot { text-align: center; font-size: 11px; color: var(--ink-faint); margin-top: 18px; line-height: 1.5; }
   .clearbtn {
     background: none; border: 0; color: var(--warn); font: inherit; font-size: 12px;
@@ -248,6 +259,7 @@
       <span class="status novo" id="v-status"><span class="dot"></span><span id="v-status-txt">Aguardando</span></span>
     </div>
     <div class="card-b">
+      <div id="sync" class="sync" style="display:none"></div>
       <div class="field">
         <label for="operador">Operador / Portaria</label>
         <input id="operador" type="text" placeholder="Seu nome" autocomplete="name">
@@ -286,6 +298,13 @@
 <div class="toast" id="toast"></div>
 
 <script>
+  // ==========================================================================
+  //  CONFIGURAÇÃO DA PLANILHA CENTRAL (Google Sheets via Apps Script)
+  //  Cole abaixo, entre as aspas, a URL do seu Web App (termina em /exec).
+  //  Enquanto ficar vazio, os registros ficam só neste aparelho.
+  // ==========================================================================
+  const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwOWI-1jUqkzYYMh4TQUDEfVy8gwLnRruHXc4mLiWgTH2Uu0G7yBSYNLZpGZ5zBOFPC/exec";
+
   // Recupera os parâmetros tentando várias fontes, pois hospedagens em
   // sandbox (ex.: artifact) podem não repassar a query string à página.
   function acharParams(){
@@ -331,7 +350,8 @@
   document.getElementById("v-emissao").textContent = (dados.data + " " + dados.hora).trim();
   document.getElementById("v-vendedor").textContent = dados.vendedor;
 
-  const KEY = "dav_validacoes_" + dados.dav;
+  const KEY = "dav_validacoes_" + dados.dav;       // cache local (exibição offline)
+  const PEND = "dav_pendentes_" + dados.dav;       // fila de envios ainda não confirmados
   const toastEl = document.getElementById("toast");
   let toastT;
   function toast(msg){
@@ -339,8 +359,12 @@
     clearTimeout(toastT); toastT = setTimeout(()=>toastEl.classList.remove("show"), 2600);
   }
 
-  function load(){ try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch(e){ return []; } }
-  function save(a){ localStorage.setItem(KEY, JSON.stringify(a)); }
+  let registros = [];   // fonte de verdade para exibição
+
+  function carregarLocal(){ try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch(e){ return []; } }
+  function salvarLocal(a){ try { localStorage.setItem(KEY, JSON.stringify(a)); } catch(e){} }
+  function lerPend(){ try { return JSON.parse(localStorage.getItem(PEND)) || []; } catch(e){ return []; } }
+  function salvarPend(a){ try { localStorage.setItem(PEND, JSON.stringify(a)); } catch(e){} }
 
   function fmtNow(){
     const d = new Date();
@@ -348,46 +372,138 @@
     return p(d.getDate())+"/"+p(d.getMonth()+1)+"/"+d.getFullYear()+" "+p(d.getHours())+":"+p(d.getMinutes());
   }
 
+  function setSync(estado, msg){
+    const el = document.getElementById("sync");
+    el.style.display = "flex";
+    el.className = "sync " + estado;
+    el.textContent = msg;
+  }
+
+  // ---- Planilha central (Google Sheets / Apps Script) ----
+  function centralAtivo(){ return typeof WEBAPP_URL === "string" && /^https:\/\/.+\/exec/.test(WEBAPP_URL); }
+
+  // Leitura via JSONP (evita bloqueio de CORS ao ler a resposta).
+  function centralLer(cb){
+    if(!centralAtivo()){ cb(null); return; }
+    const fn = "jsonp_" + Math.floor(Math.random()*1e9);
+    const s = document.createElement("script");
+    let done = false;
+    const limpa = ()=>{ if(done) return; done = true; try{ delete window[fn]; }catch(e){} s.remove(); };
+    window[fn] = function(resp){ limpa(); cb(resp && resp.ok ? (resp.registros||[]) : null); };
+    s.onerror = ()=>{ limpa(); cb(null); };
+    s.src = WEBAPP_URL + "?dav=" + encodeURIComponent(dados.dav) + "&callback=" + fn + "&_=" + Date.now();
+    document.head.appendChild(s);
+    setTimeout(()=>{ if(!done){ limpa(); cb(null); } }, 9000);
+  }
+
+  // Gravação: POST "simples" (text/plain + no-cors) => sem preflight de CORS.
+  function centralGravar(reg){
+    return fetch(WEBAPP_URL, {
+      method: "POST", mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(reg)
+    });
+  }
+
+  // Reenvia itens que ficaram pendentes (offline / falha anterior).
+  function enviarPendentes(depois){
+    let fila = lerPend();
+    if(!centralAtivo() || !fila.length){ if(depois) depois(false); return; }
+    const envios = fila.map(r => centralGravar(r).then(()=>true).catch(()=>false));
+    Promise.all(envios).then(res => {
+      if(res.every(Boolean)) salvarPend([]);      // todos foram: limpa a fila
+      if(depois) depois(res.some(Boolean));
+    });
+  }
+
+  // Consolida a exibição: usa a central se disponível, senão o cache local.
+  function sincronizar(){
+    if(centralAtivo()){
+      setSync("enviando", "Sincronizando com a planilha central…");
+      centralLer(function(lista){
+        if(lista){
+          registros = lista;
+          salvarLocal(lista);
+          const pend = lerPend().length;
+          setSync("ok", pend ? ("Sincronizado. "+pend+" registro(s) aguardando reenvio.")
+                             : "Sincronizado com a planilha central.");
+        } else {
+          registros = carregarLocal();
+          setSync("erro", "Central indisponível agora — exibindo cópia deste aparelho.");
+        }
+        render();
+      });
+    } else {
+      registros = carregarLocal();
+      setSync("local", "Modo local: registros salvos só neste aparelho.");
+      render();
+    }
+  }
+
   function registrar(tipo){
     const op = document.getElementById("operador").value.trim();
     if(!op){ toast("Informe o nome do operador."); document.getElementById("operador").focus(); return; }
-    const arr = load();
-    const jaTem = arr.some(r => r.tipo === tipo);
+    const jaTem = registros.some(r => (r.tipo||"").toLowerCase() === tipo);
     if(jaTem && !confirm("Já existe um registro de "+tipo.toUpperCase()+" para este DAV. Registrar mesmo assim?")) return;
-    arr.push({ tipo, operador: op, obs: document.getElementById("obs").value.trim(), quando: fmtNow() });
-    save(arr);
+
+    const reg = {
+      dav: dados.dav, tipo: tipo, operador: op,
+      obs: document.getElementById("obs").value.trim(), quando: fmtNow(),
+      cliente: dados.cliente, cpf: dados.cpf, produto: dados.produto, codigo: dados.codigo,
+      qtde: dados.qtde, valor: dados.valor, data: dados.data, hora: dados.hora, vendedor: dados.vendedor
+    };
+
+    // Exibição otimista + cache local imediato.
+    registros.push(reg); salvarLocal(registros);
     document.getElementById("obs").value = "";
     render();
     toast((tipo==="entrada"?"Entrada":"Saída") + " registrada ✓");
+
+    if(centralAtivo()){
+      setSync("enviando", "Enviando para a planilha central…");
+      centralGravar(reg)
+        .then(()=>{ setSync("ok", "Registrado na planilha central ✓"); setTimeout(sincronizar, 1500); })
+        .catch(()=>{
+          const f = lerPend(); f.push(reg); salvarPend(f);
+          setSync("erro", "Sem conexão: salvo neste aparelho e será reenviado depois.");
+        });
+    }
   }
 
   function limpar(){
-    if(!confirm("Apagar todo o histórico deste DAV neste dispositivo?")) return;
-    localStorage.removeItem(KEY); render(); toast("Histórico apagado.");
+    if(!confirm("Apagar o histórico exibido neste aparelho? (Não apaga a planilha central.)")) return;
+    localStorage.removeItem(KEY);
+    registros = centralAtivo() ? registros : [];
+    if(!centralAtivo()) render(); else sincronizar();
+    toast("Cópia local apagada.");
   }
 
+  function tipoDe(r){ return (r.tipo||"").toString().trim().toLowerCase(); }
+
   function render(){
-    const arr = load();
+    const arr = registros;
     const logEl = document.getElementById("log");
     const statusEl = document.getElementById("v-status");
     const statusTxt = document.getElementById("v-status-txt");
     document.getElementById("clearbtn").style.display = arr.length ? "" : "none";
 
-    const temEntrada = arr.some(r=>r.tipo==="entrada");
-    const temSaida = arr.some(r=>r.tipo==="saida");
+    const temEntrada = arr.some(r=>tipoDe(r)==="entrada");
+    const temSaida = arr.some(r=>tipoDe(r)==="saida");
     statusEl.className = "status " + (temSaida ? "saida" : temEntrada ? "entrada" : "novo");
     statusTxt.textContent = temSaida ? "Saída registrada" : temEntrada ? "Entrada registrada" : "Aguardando validação";
 
     if(!arr.length){ logEl.innerHTML = '<div class="empty">Nenhum registro ainda.</div>'; return; }
-    logEl.innerHTML = arr.slice().reverse().map(r => `
+    logEl.innerHTML = arr.slice().reverse().map(r => {
+      const t = tipoDe(r);
+      return `
       <div class="log-item">
-        <span class="pill ${r.tipo}">${r.tipo}</span>
+        <span class="pill ${t}">${t}</span>
         <div class="info">
-          <div class="t">${escapeHtml(r.operador)}</div>
+          <div class="t">${escapeHtml(r.operador||"")}</div>
           <div class="s">${r.obs ? escapeHtml(r.obs) : "sem observação"}</div>
         </div>
-        <div class="log-time">${r.quando}</div>
-      </div>`).join("");
+        <div class="log-time">${escapeHtml(String(r.quando||""))}</div>
+      </div>`; }).join("");
   }
   function escapeHtml(s){ return s.replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
@@ -402,7 +518,14 @@
       "Para funcionar, hospede o arquivo num servidor comum que preserve <code>?...</code> na URL.";
   }
 
+  // Arranque: mostra o cache local na hora, depois consolida com a central.
+  registros = carregarLocal();
   render();
+  if(centralAtivo()){
+    enviarPendentes(function(){ sincronizar(); });
+  } else {
+    setSync("local", "Modo local: registros salvos só neste aparelho.");
+  }
 </script>
 
 </body>
