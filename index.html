@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2e7d46">
+<title>Validação de Entrada/Saída — DAV</title>
+<style>
+  :root {
+    --ground: #f4f6f1;
+    --surface: #ffffff;
+    --surface-2: #f0f3ec;
+    --ink: #182219;
+    --ink-soft: #4a5a4d;
+    --ink-faint: #7a8a7d;
+    --line: #dce3d6;
+    --line-strong: #c4cfbc;
+    --brand: #2e7d46;
+    --brand-dark: #1f5c33;
+    --brand-tint: #e7f1e6;
+    --ok: #2e7d46;
+    --ok-tint: #e4f2e5;
+    --out: #b5651d;
+    --out-tint: #f8ecdd;
+    --warn: #b23b2e;
+    --warn-tint: #f7e4e1;
+    --shadow: 0 1px 2px rgba(24,34,25,.06), 0 8px 24px rgba(24,34,25,.06);
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #10140e;
+      --surface: #1a1f17;
+      --surface-2: #232a1f;
+      --ink: #e9efe6;
+      --ink-soft: #a9b6a6;
+      --ink-faint: #7d8b7a;
+      --line: #2c352a;
+      --line-strong: #3a4536;
+      --brand: #5cb877;
+      --brand-dark: #7cc98f;
+      --brand-tint: #1d2c1f;
+      --ok: #5cb877;
+      --ok-tint: #1d2c1f;
+      --out: #d99a4e;
+      --out-tint: #2e2415;
+      --warn: #e07a6b;
+      --warn-tint: #2e1a17;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"] {
+    --ground: #f4f6f1; --surface: #ffffff; --surface-2: #f0f3ec;
+    --ink: #182219; --ink-soft: #4a5a4d; --ink-faint: #7a8a7d;
+    --line: #dce3d6; --line-strong: #c4cfbc;
+    --brand: #2e7d46; --brand-dark: #1f5c33; --brand-tint: #e7f1e6;
+    --ok: #2e7d46; --ok-tint: #e4f2e5; --out: #b5651d; --out-tint: #f8ecdd;
+    --warn: #b23b2e; --warn-tint: #f7e4e1;
+    --shadow: 0 1px 2px rgba(24,34,25,.06), 0 8px 24px rgba(24,34,25,.06);
+  }
+  :root[data-theme="dark"] {
+    --ground: #10140e; --surface: #1a1f17; --surface-2: #232a1f;
+    --ink: #e9efe6; --ink-soft: #a9b6a6; --ink-faint: #7d8b7a;
+    --line: #2c352a; --line-strong: #3a4536;
+    --brand: #5cb877; --brand-dark: #7cc98f; --brand-tint: #1d2c1f;
+    --ok: #5cb877; --ok-tint: #1d2c1f; --out: #d99a4e; --out-tint: #2e2415;
+    --warn: #e07a6b; --warn-tint: #2e1a17;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.45;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 16px 16px 40px; }
+
+  header.top {
+    display: flex; align-items: center; gap: 12px;
+    padding: 6px 2px 16px;
+  }
+  .mark {
+    width: 38px; height: 38px; border-radius: 10px; flex: none;
+    background: var(--brand); color: #fff;
+    display: grid; place-items: center; font-weight: 800; font-size: 18px;
+    box-shadow: var(--shadow);
+  }
+  @media (prefers-color-scheme: dark){ .mark { color: #0f150e; } }
+  :root[data-theme="dark"] .mark { color: #0f150e; }
+  .top h1 { font-size: 15px; margin: 0; letter-spacing: .2px; }
+  .top p { font-size: 12px; margin: 2px 0 0; color: var(--ink-faint); }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .card-h {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface-2);
+  }
+  .card-h .label {
+    font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .card-b { padding: 6px 16px 14px; }
+
+  .dav-no { font-size: 12px; color: var(--ink-faint); }
+  .dav-no b { color: var(--brand-dark); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+  .row {
+    display: flex; justify-content: space-between; gap: 14px;
+    padding: 9px 0;
+    border-bottom: 1px dashed var(--line);
+  }
+  .row:last-child { border-bottom: 0; }
+  .row .k { font-size: 12.5px; color: var(--ink-faint); flex: none; }
+  .row .v { font-size: 14px; font-weight: 600; text-align: right; }
+  .row .v.mono { font-variant-numeric: tabular-nums; letter-spacing: .3px; }
+
+  .prod {
+    background: var(--brand-tint);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 11px 13px; margin: 12px 0 4px;
+  }
+  .prod .name { font-weight: 700; font-size: 14.5px; }
+  .prod .meta { font-size: 12.5px; color: var(--ink-soft); margin-top: 3px; display: flex; gap: 14px; flex-wrap: wrap; }
+  .prod .meta .val { color: var(--brand-dark); font-weight: 700; }
+
+  .field { margin: 12px 0; }
+  .field label { display: block; font-size: 12px; font-weight: 700; color: var(--ink-soft); margin-bottom: 6px; letter-spacing: .02em; }
+  .field input, .field textarea {
+    width: 100%; font: inherit; font-size: 15px;
+    padding: 11px 12px; border-radius: 10px;
+    border: 1px solid var(--line-strong); background: var(--surface);
+    color: var(--ink); -webkit-appearance: none;
+  }
+  .field input:focus, .field textarea:focus {
+    outline: 2px solid var(--brand); outline-offset: 1px; border-color: var(--brand);
+  }
+  .field textarea { resize: vertical; min-height: 52px; }
+
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
+  .btn {
+    font: inherit; font-weight: 700; font-size: 15px;
+    padding: 15px 12px; border-radius: 12px; border: 1px solid transparent;
+    cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    transition: transform .05s ease, filter .15s ease;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn small { font-size: 11px; font-weight: 600; opacity: .85; }
+  .btn.entrada { background: var(--ok); color: #fff; }
+  .btn.saida { background: var(--out); color: #fff; }
+  @media (prefers-color-scheme: dark){ .btn.entrada, .btn.saida { color: #0f150e; } }
+  :root[data-theme="dark"] .btn.entrada, :root[data-theme="dark"] .btn.saida { color: #0f150e; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+  .status {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12.5px; font-weight: 700;
+    padding: 5px 11px; border-radius: 999px;
+  }
+  .status.novo { background: var(--surface); color: var(--ink-faint); border: 1px solid var(--line); }
+  .status.entrada { background: var(--ok-tint); color: var(--ok); }
+  .status.saida { background: var(--out-tint); color: var(--out); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+  .empty { color: var(--ink-faint); font-size: 13px; text-align: center; padding: 18px 0; }
+
+  .log-item {
+    display: flex; align-items: center; gap: 11px;
+    padding: 11px 0; border-bottom: 1px solid var(--line);
+  }
+  .log-item:last-child { border-bottom: 0; }
+  .pill {
+    font-size: 10.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase;
+    padding: 4px 9px; border-radius: 7px; flex: none;
+  }
+  .pill.entrada { background: var(--ok-tint); color: var(--ok); }
+  .pill.saida { background: var(--out-tint); color: var(--out); }
+  .log-item .info { flex: 1; min-width: 0; }
+  .log-item .info .t { font-size: 13px; font-weight: 600; }
+  .log-item .info .s { font-size: 11.5px; color: var(--ink-faint); }
+  .log-time { font-size: 11.5px; color: var(--ink-faint); text-align: right; font-variant-numeric: tabular-nums; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: var(--ground);
+    padding: 12px 18px; border-radius: 12px; font-size: 13.5px; font-weight: 600;
+    box-shadow: var(--shadow); opacity: 0; pointer-events: none;
+    transition: opacity .2s ease, transform .2s ease; z-index: 50; max-width: 90%;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .foot { text-align: center; font-size: 11px; color: var(--ink-faint); margin-top: 18px; line-height: 1.5; }
+  .clearbtn {
+    background: none; border: 0; color: var(--warn); font: inherit; font-size: 12px;
+    font-weight: 600; cursor: pointer; text-decoration: underline; padding: 0;
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="mark">✓</div>
+    <div>
+      <h1>Validação de Entrada / Saída</h1>
+      <p>Controle de mercadoria · DAV</p>
+    </div>
+  </header>
+
+  <div id="diag" style="display:none;background:var(--warn-tint);border:1px solid var(--warn);color:var(--warn);border-radius:12px;padding:12px 14px;font-size:12.5px;margin-bottom:14px;line-height:1.5"></div>
+
+  <section class="card">
+    <div class="card-h">
+      <span class="label">Compra</span>
+      <span class="dav-no">DAV nº <b id="v-dav">—</b></span>
+    </div>
+    <div class="card-b">
+      <div class="prod">
+        <div class="name" id="v-produto">—</div>
+        <div class="meta">
+          <span>Cód. <span class="val" id="v-codigo">—</span></span>
+          <span>Qtde. <span class="val" id="v-qtde">—</span></span>
+          <span>Valor <span class="val" id="v-valor">—</span></span>
+        </div>
+      </div>
+      <div class="row"><span class="k">Cliente</span><span class="v" id="v-cliente">—</span></div>
+      <div class="row"><span class="k">CPF/CNPJ</span><span class="v mono" id="v-cpf">—</span></div>
+      <div class="row"><span class="k">Emissão</span><span class="v mono" id="v-emissao">—</span></div>
+      <div class="row"><span class="k">Vendedor</span><span class="v" id="v-vendedor">—</span></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-h">
+      <span class="label">Situação</span>
+      <span class="status novo" id="v-status"><span class="dot"></span><span id="v-status-txt">Aguardando</span></span>
+    </div>
+    <div class="card-b">
+      <div class="field">
+        <label for="operador">Operador / Portaria</label>
+        <input id="operador" type="text" placeholder="Seu nome" autocomplete="name">
+      </div>
+      <div class="field">
+        <label for="obs">Observação (opcional)</label>
+        <textarea id="obs" placeholder="Ex.: conferido, veículo placa XXX-0000"></textarea>
+      </div>
+      <div class="actions">
+        <button class="btn entrada" id="btn-entrada" onclick="registrar('entrada')">
+          Registrar ENTRADA<small>mercadoria no ambiente</small>
+        </button>
+        <button class="btn saida" id="btn-saida" onclick="registrar('saida')">
+          Registrar SAÍDA<small>liberação / saída</small>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-h">
+      <span class="label">Histórico deste DAV</span>
+      <button class="clearbtn" id="clearbtn" onclick="limpar()" style="display:none">limpar</button>
+    </div>
+    <div class="card-b">
+      <div id="log"></div>
+    </div>
+  </section>
+
+  <p class="foot">
+    Protótipo de validação · Os registros ficam salvos neste dispositivo.<br>
+    Cooperativa Agropecuária São Gabriel do Oeste
+  </p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // Recupera os parâmetros tentando várias fontes, pois hospedagens em
+  // sandbox (ex.: artifact) podem não repassar a query string à página.
+  function acharParams(){
+    const cand = [];
+    if (location.search && location.search.length > 1) cand.push({src:"URL (search)", qs:location.search});
+    if (location.hash && location.hash.includes("=")) cand.push({src:"URL (hash)", qs:location.hash.replace(/^#/,"?")});
+    try {
+      if (document.referrer && document.referrer.includes("?"))
+        cand.push({src:"referenciador", qs:"?"+document.referrer.split("?").slice(1).join("?")});
+    } catch(e){}
+    for (const c of cand){
+      const p = new URLSearchParams(c.qs);
+      if (p.get("dav")){ window.__fonte = c.src; return p; }
+    }
+    window.__fonte = cand.length ? cand[0].src : "nenhuma";
+    return new URLSearchParams(cand.length ? cand[0].qs : "");
+  }
+  const PARAMS = acharParams();
+  function qp(name){
+    const v = PARAMS.get(name);
+    return v ? v : "";
+  }
+  const dados = {
+    dav: qp("dav") || "—",
+    cliente: qp("cliente") || "Não informado",
+    cpf: qp("cpf") || "—",
+    produto: qp("produto") || "Não informado",
+    codigo: qp("codigo") || "—",
+    qtde: qp("qtde") || "—",
+    valor: qp("valor") || "—",
+    data: qp("data") || "—",
+    hora: qp("hora") || "",
+    vendedor: qp("vendedor") || "Não informado",
+  };
+
+  document.getElementById("v-dav").textContent = dados.dav;
+  document.getElementById("v-produto").textContent = dados.produto;
+  document.getElementById("v-codigo").textContent = dados.codigo;
+  document.getElementById("v-qtde").textContent = dados.qtde;
+  document.getElementById("v-valor").textContent = dados.valor.startsWith("R$") || dados.valor === "—" ? dados.valor : "R$ " + dados.valor;
+  document.getElementById("v-cliente").textContent = dados.cliente;
+  document.getElementById("v-cpf").textContent = dados.cpf;
+  document.getElementById("v-emissao").textContent = (dados.data + " " + dados.hora).trim();
+  document.getElementById("v-vendedor").textContent = dados.vendedor;
+
+  const KEY = "dav_validacoes_" + dados.dav;
+  const toastEl = document.getElementById("toast");
+  let toastT;
+  function toast(msg){
+    toastEl.textContent = msg; toastEl.classList.add("show");
+    clearTimeout(toastT); toastT = setTimeout(()=>toastEl.classList.remove("show"), 2600);
+  }
+
+  function load(){ try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch(e){ return []; } }
+  function save(a){ localStorage.setItem(KEY, JSON.stringify(a)); }
+
+  function fmtNow(){
+    const d = new Date();
+    const p = n => String(n).padStart(2,"0");
+    return p(d.getDate())+"/"+p(d.getMonth()+1)+"/"+d.getFullYear()+" "+p(d.getHours())+":"+p(d.getMinutes());
+  }
+
+  function registrar(tipo){
+    const op = document.getElementById("operador").value.trim();
+    if(!op){ toast("Informe o nome do operador."); document.getElementById("operador").focus(); return; }
+    const arr = load();
+    const jaTem = arr.some(r => r.tipo === tipo);
+    if(jaTem && !confirm("Já existe um registro de "+tipo.toUpperCase()+" para este DAV. Registrar mesmo assim?")) return;
+    arr.push({ tipo, operador: op, obs: document.getElementById("obs").value.trim(), quando: fmtNow() });
+    save(arr);
+    document.getElementById("obs").value = "";
+    render();
+    toast((tipo==="entrada"?"Entrada":"Saída") + " registrada ✓");
+  }
+
+  function limpar(){
+    if(!confirm("Apagar todo o histórico deste DAV neste dispositivo?")) return;
+    localStorage.removeItem(KEY); render(); toast("Histórico apagado.");
+  }
+
+  function render(){
+    const arr = load();
+    const logEl = document.getElementById("log");
+    const statusEl = document.getElementById("v-status");
+    const statusTxt = document.getElementById("v-status-txt");
+    document.getElementById("clearbtn").style.display = arr.length ? "" : "none";
+
+    const temEntrada = arr.some(r=>r.tipo==="entrada");
+    const temSaida = arr.some(r=>r.tipo==="saida");
+    statusEl.className = "status " + (temSaida ? "saida" : temEntrada ? "entrada" : "novo");
+    statusTxt.textContent = temSaida ? "Saída registrada" : temEntrada ? "Entrada registrada" : "Aguardando validação";
+
+    if(!arr.length){ logEl.innerHTML = '<div class="empty">Nenhum registro ainda.</div>'; return; }
+    logEl.innerHTML = arr.slice().reverse().map(r => `
+      <div class="log-item">
+        <span class="pill ${r.tipo}">${r.tipo}</span>
+        <div class="info">
+          <div class="t">${escapeHtml(r.operador)}</div>
+          <div class="s">${r.obs ? escapeHtml(r.obs) : "sem observação"}</div>
+        </div>
+        <div class="log-time">${r.quando}</div>
+      </div>`).join("");
+  }
+  function escapeHtml(s){ return s.replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+  // Diagnóstico: se não chegaram os dados, mostra de onde tentou ler.
+  if (!PARAMS.get("dav")) {
+    const d = document.getElementById("diag");
+    d.style.display = "block";
+    d.innerHTML = "<b>Dados não recebidos.</b><br>" +
+      "A página tentou ler os parâmetros de: <b>" + (window.__fonte || "nenhuma") + "</b>.<br>" +
+      "URL vista: <span style='word-break:break-all'>" + escapeHtml(location.href) + "</span><br>" +
+      "Isso ocorre quando a hospedagem não repassa a query string à página. " +
+      "Para funcionar, hospede o arquivo num servidor comum que preserve <code>?...</code> na URL.";
+  }
+
+  render();
+</script>
+
+</body>
+</html>
