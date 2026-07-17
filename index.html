@@ -480,6 +480,18 @@
 
   function tipoDe(r){ return (r.tipo||"").toString().trim().toLowerCase(); }
 
+  // Normaliza a data/hora para dd/mm/aaaa hh:mm, venha ela já formatada
+  // ou como texto de Date (ex.: "Fri Jul 17 2026 17:07:30 GMT-0400 ...").
+  function normQuando(q){
+    if(!q) return "";
+    q = String(q);
+    if(/^\d{2}\/\d{2}\/\d{4}/.test(q)) return q;      // já está no formato certo
+    const d = new Date(q);
+    if(isNaN(d.getTime())) return q;                  // não deu pra interpretar: mostra como veio
+    const p = n => String(n).padStart(2,"0");
+    return p(d.getDate())+"/"+p(d.getMonth()+1)+"/"+d.getFullYear()+" "+p(d.getHours())+":"+p(d.getMinutes());
+  }
+
   function render(){
     const arr = registros;
     const logEl = document.getElementById("log");
@@ -502,7 +514,7 @@
           <div class="t">${escapeHtml(r.operador||"")}</div>
           <div class="s">${r.obs ? escapeHtml(r.obs) : "sem observação"}</div>
         </div>
-        <div class="log-time">${escapeHtml(String(r.quando||""))}</div>
+        <div class="log-time">${escapeHtml(normQuando(r.quando))}</div>
       </div>`; }).join("");
   }
   function escapeHtml(s){ return s.replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
