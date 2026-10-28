@@ -66,6 +66,19 @@
   .btn-sec:active { transform: translateY(1px); }
   .whoami b { color: var(--brand-dark); }
 
+  .filtro { margin-bottom: 14px; }
+  .filtro .card-b { padding: 12px 14px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip { font: inherit; font-size: 12.5px; font-weight: 600; padding: 7px 13px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink-soft); cursor: pointer; }
+  .chip:active { transform: translateY(1px); }
+  .chip.ativo { background: var(--brand); color: #fff; border-color: var(--brand); }
+  @media (prefers-color-scheme: dark){ .chip.ativo { color: #0f150e; } }
+  :root[data-theme="dark"] .chip.ativo { color: #0f150e; }
+  .range { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin-top: 12px; }
+  .range label { font-size: 12px; font-weight: 600; color: var(--ink-soft); display: flex; flex-direction: column; gap: 5px; }
+  .range input { font: inherit; font-size: 14px; padding: 9px 10px; border-radius: 9px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); }
+  .periodo-txt { font-size: 11.5px; color: var(--ink-faint); margin-top: 10px; font-weight: 600; }
+
   .kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
   @media (min-width: 520px){ .kpis { grid-template-columns: repeat(4, 1fr); } }
   .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px; }
@@ -158,6 +171,25 @@
     <button class="btn-sec" onclick="sair()" style="margin-left:8px">Sair</button>
   </header>
 
+  <section class="card filtro">
+    <div class="card-b">
+      <div class="chips">
+        <button class="chip" data-p="hoje">Hoje</button>
+        <button class="chip" data-p="7">7 dias</button>
+        <button class="chip ativo" data-p="30">30 dias</button>
+        <button class="chip" data-p="mes">Este mês</button>
+        <button class="chip" data-p="tudo">Tudo</button>
+        <button class="chip" data-p="custom">Personalizado</button>
+      </div>
+      <div id="range-custom" class="range hidden">
+        <label>De <input type="date" id="f-de"></label>
+        <label>Até <input type="date" id="f-ate"></label>
+        <button class="btn-sec" onclick="aplicarCustom()" style="padding:9px 14px">Aplicar</button>
+      </div>
+      <div class="periodo-txt" id="periodo-txt"></div>
+    </div>
+  </section>
+
   <div class="kpis">
     <div class="kpi"><div class="n" id="k-reg">—</div><div class="l">Registros</div></div>
     <div class="kpi ent"><div class="n" id="k-ent">—</div><div class="l">Entradas</div></div>
@@ -171,6 +203,7 @@
       <span class="count" id="c-aberto"></span>
     </div>
     <div class="card-b" style="padding-top:0">
+      <div class="muted" style="font-size:11px;padding:8px 8px 2px">Situação atual — considera todos os registros, independente do período filtrado.</div>
       <div id="t-aberto"><div class="loading">Carregando…</div></div>
     </div>
   </section>
@@ -198,6 +231,9 @@
   const SUPABASE_KEY = "sb_publishable_MxTN-gV0B0F62Apj1ES8SQ_vGIJ_AKt";
   const TABELA = "validacoes";
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
+
+  let TODOS = [];                                  // todos os registros carregados
+  let filtro = { preset: "30", de: null, ate: null };  // período atual
 
   function el(id){ return document.getElementById(id); }
   function escapeHtml(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
@@ -248,12 +284,60 @@
       el("t-aberto").innerHTML = msg; el("t-dias").innerHTML = msg; el("t-ult").innerHTML = msg;
       return;
     }
-    const regs = data || [];
-    renderKpis(regs);
-    renderAberto(regs);
-    renderDias(regs);
-    renderUltimos(regs);
+    TODOS = data || [];
+    aplicar();
   }
+
+  // ---- Filtro de período ----
+  function diaKey(iso){ const d = new Date(iso); if(isNaN(d)) return 0; return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); }
+  function parseDateInput(v){ if(!v) return null; const a = v.split("-").map(Number); return new Date(a[0], a[1]-1, a[2]).getTime(); }
+  function fmtDia(ts){ const d = new Date(ts); return p2(d.getDate())+"/"+p2(d.getMonth()+1)+"/"+d.getFullYear(); }
+
+  function rangeDoPreset(){
+    const h = new Date();
+    const hoje = new Date(h.getFullYear(), h.getMonth(), h.getDate()).getTime();
+    const DIA = 86400000;
+    switch(filtro.preset){
+      case "hoje":  return { de: hoje, ate: hoje };
+      case "7":     return { de: hoje - 6*DIA, ate: hoje };
+      case "30":    return { de: hoje - 29*DIA, ate: hoje };
+      case "mes":   return { de: new Date(h.getFullYear(), h.getMonth(), 1).getTime(), ate: hoje };
+      case "tudo":  return { de: null, ate: null };
+      case "custom":return { de: filtro.de, ate: filtro.ate };
+    }
+    return { de: null, ate: null };
+  }
+  function textoPeriodo(de, ate, n){
+    const per = (de==null && ate==null) ? "Todos os períodos"
+              : "Período: " + (de ? fmtDia(de) : "início") + " a " + (ate ? fmtDia(ate) : "hoje");
+    return per + " · " + n + " registro(s)";
+  }
+  function aplicar(){
+    const r = rangeDoPreset();
+    const filtrados = TODOS.filter(x => { const k = diaKey(x.registrado_em); return (r.de==null || k>=r.de) && (r.ate==null || k<=r.ate); });
+    el("periodo-txt").textContent = textoPeriodo(r.de, r.ate, filtrados.length);
+    renderKpis(filtrados, TODOS);
+    renderDias(filtrados);
+    renderUltimos(filtrados);
+    renderAberto(TODOS);
+  }
+  function aplicarCustom(){
+    filtro.preset = "custom";
+    filtro.de = parseDateInput(el("f-de").value);
+    filtro.ate = parseDateInput(el("f-ate").value);
+    aplicar();
+  }
+  document.querySelectorAll(".chip").forEach(c => {
+    c.addEventListener("click", () => {
+      const p = c.dataset.p;
+      document.querySelectorAll(".chip").forEach(x => x.classList.remove("ativo"));
+      c.classList.add("ativo");
+      if(p === "custom"){ el("range-custom").classList.remove("hidden"); return; }
+      el("range-custom").classList.add("hidden");
+      filtro.preset = p;
+      aplicar();
+    });
+  });
 
   function agruparDav(regs){
     const m = {};
@@ -272,10 +356,10 @@
     return m;
   }
 
-  function renderKpis(regs){
+  function renderKpis(regs, todos){
     let ent=0, sai=0;
     for(const r of regs){ const t=tipoDe(r); if(t==="entrada")ent++; else if(t==="saida")sai++; }
-    const davs = agruparDav(regs);
+    const davs = agruparDav(todos || regs);   // "em aberto" = situação atual (todos)
     let aberto=0; for(const k in davs){ if(davs[k].entradas>0 && davs[k].saidas===0) aberto++; }
     el("k-reg").textContent = regs.length;
     el("k-ent").textContent = ent;
