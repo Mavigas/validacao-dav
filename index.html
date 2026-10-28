@@ -290,7 +290,7 @@
   </section>
 
   <p class="foot">
-    Protótipo de validação · Os registros ficam salvos neste dispositivo.<br>
+    Protótipo de validação · Registros no banco central, com cópia neste dispositivo.<br>
     Cooperativa Agropecuária São Gabriel do Oeste
   </p>
 </div>
@@ -299,11 +299,15 @@
 
 <script>
   // ==========================================================================
-  //  CONFIGURAÇÃO DA PLANILHA CENTRAL (Google Sheets via Apps Script)
-  //  Cole abaixo, entre as aspas, a URL do seu Web App (termina em /exec).
-  //  Enquanto ficar vazio, os registros ficam só neste aparelho.
+  //  CONFIGURAÇÃO DO BANCO CENTRAL (Supabase)
+  //  URL do projeto + chave PÚBLICA (anon / publishable).
+  //  A chave abaixo é pública por natureza: quem protege os dados é o RLS do
+  //  banco (pode gravar e ler; não pode apagar/alterar). Nunca use a service_role.
+  //  Enquanto ficarem vazias, os registros ficam só neste aparelho.
   // ==========================================================================
-  const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwOWI-1jUqkzYYMh4TQUDEfVy8gwLnRruHXc4mLiWgTH2Uu0G7yBSYNLZpGZ5zBOFPC/exec";
+  const SUPABASE_URL = "https://bttcakybecllhnguuzrk.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_MxTN-gV0B0F62Apj1ES8SQ_vGIJ_AKt";
+  const TABELA = "validacoes";
 
   // Recupera os parâmetros tentando várias fontes, pois hospedagens em
   // sandbox (ex.: artifact) podem não repassar a query string à página.
@@ -379,30 +383,53 @@
     el.textContent = msg;
   }
 
-  // ---- Planilha central (Google Sheets / Apps Script) ----
-  function centralAtivo(){ return typeof WEBAPP_URL === "string" && /^https:\/\/.+\/exec/.test(WEBAPP_URL); }
-
-  // Leitura via JSONP (evita bloqueio de CORS ao ler a resposta).
-  function centralLer(cb){
-    if(!centralAtivo()){ cb(null); return; }
-    const fn = "jsonp_" + Math.floor(Math.random()*1e9);
-    const s = document.createElement("script");
-    let done = false;
-    const limpa = ()=>{ if(done) return; done = true; try{ delete window[fn]; }catch(e){} s.remove(); };
-    window[fn] = function(resp){ limpa(); cb(resp && resp.ok ? (resp.registros||[]) : null); };
-    s.onerror = ()=>{ limpa(); cb(null); };
-    s.src = WEBAPP_URL + "?dav=" + encodeURIComponent(dados.dav) + "&callback=" + fn + "&_=" + Date.now();
-    document.head.appendChild(s);
-    setTimeout(()=>{ if(!done){ limpa(); cb(null); } }, 9000);
+  // ---- Banco central (Supabase / PostgREST) ----
+  function centralAtivo(){
+    return typeof SUPABASE_URL === "string" && /^https:\/\//.test(SUPABASE_URL)
+        && typeof SUPABASE_KEY === "string" && SUPABASE_KEY.length > 10;
+  }
+  function apiBase(){ return SUPABASE_URL.replace(/\/+$/,"") + "/rest/v1/" + TABELA; }
+  function apiHeaders(extra){
+    return Object.assign({
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY
+    }, extra || {});
   }
 
-  // Gravação: POST "simples" (text/plain + no-cors) => sem preflight de CORS.
+  // Leitura: GET filtrando por DAV (o Supabase já libera CORS).
+  function centralLer(cb){
+    if(!centralAtivo()){ cb(null); return; }
+    const url = apiBase()
+      + "?dav=eq." + encodeURIComponent(dados.dav)
+      + "&select=registrado_em,tipo,operador,observacao"
+      + "&order=registrado_em.asc";
+    const ctrl = new AbortController();
+    const to = setTimeout(()=>ctrl.abort(), 9000);
+    fetch(url, { headers: apiHeaders(), signal: ctrl.signal })
+      .then(r => r.ok ? r.json() : Promise.reject(new Error("HTTP "+r.status)))
+      .then(linhas => {
+        clearTimeout(to);
+        cb((linhas||[]).map(l => ({
+          quando: l.registrado_em, tipo: l.tipo,
+          operador: l.operador, obs: l.observacao
+        })));
+      })
+      .catch(()=>{ clearTimeout(to); cb(null); });
+  }
+
+  // Gravação: POST de uma linha. Erro de HTTP vira rejeição (alimenta a fila offline).
   function centralGravar(reg){
-    return fetch(WEBAPP_URL, {
-      method: "POST", mode: "no-cors",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(reg)
-    });
+    const linha = {
+      dav: reg.dav, tipo: reg.tipo, operador: reg.operador, observacao: reg.obs || "",
+      cliente: reg.cliente, cpf: reg.cpf, produto: reg.produto, codigo: reg.codigo,
+      qtde: reg.qtde, valor: reg.valor,
+      emissao_data: reg.data, emissao_hora: reg.hora, vendedor: reg.vendedor
+    };
+    return fetch(apiBase(), {
+      method: "POST",
+      headers: apiHeaders({ "Content-Type": "application/json", "Prefer": "return=minimal" }),
+      body: JSON.stringify(linha)
+    }).then(r => { if(!r.ok) return Promise.reject(new Error("HTTP "+r.status)); return r; });
   }
 
   // Reenvia itens que ficaram pendentes (offline / falha anterior).
@@ -419,14 +446,14 @@
   // Consolida a exibição: usa a central se disponível, senão o cache local.
   function sincronizar(){
     if(centralAtivo()){
-      setSync("enviando", "Sincronizando com a planilha central…");
+      setSync("enviando", "Sincronizando com a banco central…");
       centralLer(function(lista){
         if(lista){
           registros = lista;
           salvarLocal(lista);
           const pend = lerPend().length;
           setSync("ok", pend ? ("Sincronizado. "+pend+" registro(s) aguardando reenvio.")
-                             : "Sincronizado com a planilha central.");
+                             : "Sincronizado com a banco central.");
         } else {
           registros = carregarLocal();
           setSync("erro", "Central indisponível agora — exibindo cópia deste aparelho.");
@@ -460,9 +487,9 @@
     toast((tipo==="entrada"?"Entrada":"Saída") + " registrada ✓");
 
     if(centralAtivo()){
-      setSync("enviando", "Enviando para a planilha central…");
+      setSync("enviando", "Enviando para a banco central…");
       centralGravar(reg)
-        .then(()=>{ setSync("ok", "Registrado na planilha central ✓"); setTimeout(sincronizar, 1500); })
+        .then(()=>{ setSync("ok", "Registrado na banco central ✓"); setTimeout(sincronizar, 1500); })
         .catch(()=>{
           const f = lerPend(); f.push(reg); salvarPend(f);
           setSync("erro", "Sem conexão: salvo neste aparelho e será reenviado depois.");
@@ -471,7 +498,7 @@
   }
 
   function limpar(){
-    if(!confirm("Apagar o histórico exibido neste aparelho? (Não apaga a planilha central.)")) return;
+    if(!confirm("Apagar o histórico exibido neste aparelho? (Não apaga a banco central.)")) return;
     localStorage.removeItem(KEY);
     registros = centralAtivo() ? registros : [];
     if(!centralAtivo()) render(); else sincronizar();
