@@ -158,6 +158,22 @@
   <p class="foot">Use o e-mail e a senha cadastrados pela cooperativa.<br>Cooperativa Agropecuária São Gabriel do Oeste</p>
 </div>
 
+<!-- ======================= ACESSO NEGADO (não-gestor) ======================= -->
+<div class="login-wrap hidden" id="tela-negado">
+  <div class="login-head">
+    <div class="mark" style="background:var(--warn)">🔒</div>
+    <h1>Acesso restrito</h1>
+    <p>Esta área é exclusiva para gestores.</p>
+  </div>
+  <section class="card"><div class="card-b" style="text-align:center">
+    <p style="font-size:13px;color:var(--ink-soft);margin-top:4px">Você está logado como<br><b id="negado-email"></b>.<br>Esse usuário não tem perfil de gestor.</p>
+    <p style="font-size:12.5px;color:var(--ink-faint)">Se precisar de acesso, fale com o administrador. A tela de validação da portaria continua disponível.</p>
+    <a class="login-btn" href="index.html" style="display:block;text-decoration:none;margin-bottom:10px">Ir para a Validação</a>
+    <button class="btn-sec" onclick="sair()" style="width:100%;padding:12px">Sair</button>
+  </div></section>
+  <p class="foot">Cooperativa Agropecuária São Gabriel do Oeste</p>
+</div>
+
 <!-- ======================= PAINEL ======================= -->
 <div class="wrap hidden" id="tela-app">
   <header class="top">
@@ -259,14 +275,34 @@
   }
   async function sair(){ await sb.auth.signOut(); el("login-senha").value = ""; }
 
-  function mostrarApp(user){
+  function ehGestor(user){
+    // papel vem de app_metadata, que SÓ o administrador define (seguro).
+    const role = user && user.app_metadata && user.app_metadata.role;
+    return role === "gestor" || role === "admin";
+  }
+
+  async function mostrarApp(user){
+    // Busca o usuário atualizado do servidor (app_metadata fresco, direto do banco).
+    try { const { data } = await sb.auth.getUser(); if(data && data.user) user = data.user; } catch(e){}
+
+    el("tela-login").classList.add("hidden");
+    if(!ehGestor(user)){
+      el("tela-app").classList.add("hidden");
+      el("negado-email").textContent = user.email || "";
+      el("tela-negado").classList.remove("hidden");
+      return;
+    }
+    el("tela-negado").classList.add("hidden");
     el("quem").textContent = (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.nome)) || user.email || "usuário";
-    el("tela-login").classList.add("hidden"); el("tela-app").classList.remove("hidden");
+    el("tela-app").classList.remove("hidden");
     carregar();
   }
-  function mostrarLogin(){ el("tela-app").classList.add("hidden"); el("tela-login").classList.remove("hidden"); }
+  function mostrarLogin(){
+    el("tela-app").classList.add("hidden");
+    el("tela-negado").classList.add("hidden");
+    el("tela-login").classList.remove("hidden");
+  }
   sb.auth.onAuthStateChange((e, s)=>{ if(s && s.user) mostrarApp(s.user); else mostrarLogin(); });
-  sb.auth.getSession().then(({data})=>{ if(data && data.session) mostrarApp(data.session.user); else mostrarLogin(); });
 
   // ---- Carregar e agregar ----
   async function carregar(){
