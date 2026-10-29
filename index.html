@@ -95,6 +95,7 @@
   .field textarea { resize: vertical; min-height: 52px; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
   @media (max-width: 440px){ .grid2 { grid-template-columns: 1fr; } }
+  .dav-row { display: grid; grid-template-columns: 1fr 110px; gap: 0 12px; margin-bottom: 12px; }
   .req label::after { content: " *"; color: var(--warn); }
 
   .scanbtn {
@@ -246,9 +247,15 @@
         <button class="scan-cancel" onclick="fecharScanner()">Cancelar leitura</button>
       </div>
 
-      <div class="field req">
-        <label for="f-dav">DAV nº</label>
-        <input id="f-dav" type="text" inputmode="numeric" placeholder="0000000000" onchange="carregarHistorico()">
+      <div class="dav-row">
+        <div class="field req" style="margin:0">
+          <label for="f-dav">DAV nº</label>
+          <input id="f-dav" type="text" inputmode="numeric" placeholder="0000000000" onchange="carregarHistorico()">
+        </div>
+        <div class="field" style="margin:0">
+          <label for="f-filial">Filial</label>
+          <input id="f-filial" type="text" inputmode="numeric" placeholder="—" onchange="carregarHistorico()">
+        </div>
       </div>
 
       <div class="itens-label">Produtos <b>*</b></div>
@@ -331,7 +338,7 @@
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
 
   const PARAMS = new URLSearchParams(location.search || "");
-  const CAMPOS = { dav:"f-dav", cliente:"f-cliente", cpf:"f-cpf", data:"f-data", hora:"f-hora", vendedor:"f-vendedor" };
+  const CAMPOS = { dav:"f-dav", filial:"f-filial", cliente:"f-cliente", cpf:"f-cpf", data:"f-data", hora:"f-hora", vendedor:"f-vendedor" };
 
   let operadorNome = "";
   let jaPreencheu = false;
@@ -486,7 +493,7 @@
 
     let soma = 0; itens.forEach(it => soma += parseNum(it.qtde) * parseNum(it.valor));
     const payload = {
-      dav: dav, tipo: tipo, operador: operadorNome, observacao: el("obs").value.trim(),
+      dav: dav, filial: el("f-filial").value.trim(), tipo: tipo, operador: operadorNome, observacao: el("obs").value.trim(),
       cliente: el("f-cliente").value.trim(), cpf: el("f-cpf").value.trim(),
       emissao_data: el("f-data").value.trim(), emissao_hora: el("f-hora").value.trim(),
       vendedor: el("f-vendedor").value.trim(), valor_total: fmtBRL(soma),
@@ -523,15 +530,18 @@
 
   async function carregarHistorico(){
     const dav = el("f-dav").value.trim();
+    const filial = el("f-filial").value.trim();
     const logEl = el("log");
     const statusEl = el("v-status"), statusTxt = el("v-status-txt");
     if(!dav){
       logEl.innerHTML = '<div class="empty">Informe ou leia um DAV para ver o histórico.</div>';
       statusEl.className = "status novo"; statusTxt.textContent = "Novo"; return;
     }
-    const { data, error } = await sb.from("validacoes")
+    let consulta = sb.from("validacoes")
       .select("registrado_em,tipo,operador,observacao,valor_total,validacao_itens(produto,unidade,qtde,valor)")
-      .eq("dav", dav).order("registrado_em", { ascending: true });
+      .eq("dav", dav);
+    if(filial) consulta = consulta.eq("filial", filial);
+    const { data, error } = await consulta.order("registrado_em", { ascending: true });
 
     if(error){ logEl.innerHTML = '<div class="empty">Não foi possível carregar o histórico agora.</div>'; return; }
 
