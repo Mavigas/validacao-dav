@@ -575,7 +575,7 @@
     const r = rangeDoPreset();
     const dados = filtrarPeriodo(filtrarPorFilial(TODOS), r);
     const sep = ";";
-    const linhas = [["Registrado em","Filial","DAV","Tipo","Cliente","CPF/CNPJ","Operador","Codigo","Descricao","Unidade","Qtde","Valor unit","Valor total DAV"].join(sep)];
+    const linhas = [["Registrado em","Filial","DAV","Tipo","Cliente","CPF/CNPJ","Operador","Codigo","Descricao","Unidade","Qtde","Valor unit","Valor total"].join(sep)];
     dados.slice().reverse().forEach(x => {
       const base = [dataHora(x.registrado_em), x.filial||"", x.dav||"", (x.tipo||"").toUpperCase(), x.cliente||"", x.cpf||"", x.operador||""];
       const its = x.validacao_itens || [];
