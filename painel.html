@@ -317,7 +317,7 @@
     el("t-ult").innerHTML = '<div class="loading">Carregando…</div>';
 
     const { data, error } = await sb.from(TABELA)
-      .select("registrado_em,dav,tipo,cliente,operador,valor_total,validacao_itens(produto,qtde,valor)")
+      .select("registrado_em,dav,filial,tipo,cliente,operador,valor_total,validacao_itens(produto,qtde,valor)")
       .order("registrado_em", { ascending: false })
       .limit(5000);
 
@@ -386,8 +386,10 @@
     // regs vem do mais novo para o mais antigo
     for(const r of regs){
       const dav = (r.dav||"").trim(); if(!dav) continue;
-      if(!m[dav]) m[dav] = { dav, entradas:0, saidas:0, cliente:"", produto:"", ultima:null, primeiraEntrada:null };
-      const o = m[dav];
+      const filial = (r.filial||"").trim();
+      const key = filial + "¦" + dav;
+      if(!m[key]) m[key] = { dav, filial, entradas:0, saidas:0, cliente:"", produto:"", ultima:null, primeiraEntrada:null };
+      const o = m[key];
       const t = tipoDe(r);
       if(t==="entrada"){ o.entradas++; o.primeiraEntrada = r.registrado_em; } // como vem desc, o último visto é o mais antigo
       else if(t==="saida"){ o.saidas++; }
@@ -416,9 +418,10 @@
     el("c-aberto").textContent = lista.length ? (lista.length + " em aberto") : "";
     if(!lista.length){ el("t-aberto").innerHTML = '<div class="empty">Nenhum DAV em aberto — tudo que entrou já saiu. ✓</div>'; return; }
     el("t-aberto").innerHTML =
-      '<table><thead><tr><th>DAV</th><th>Cliente</th><th>Produto</th><th>Entrada em</th></tr></thead><tbody>' +
+      '<table><thead><tr><th>Filial</th><th>DAV</th><th>Cliente</th><th>Produto</th><th>Entrada em</th></tr></thead><tbody>' +
       lista.map(d =>
-        '<tr><td class="dav-b">'+escapeHtml(d.dav)+'</td>'+
+        '<tr><td class="mono">'+escapeHtml(d.filial||"—")+'</td>'+
+        '<td class="dav-b">'+escapeHtml(d.dav)+'</td>'+
         '<td class="trunc">'+escapeHtml(d.cliente||"—")+'</td>'+
         '<td class="trunc muted">'+escapeHtml(d.produto||"—")+'</td>'+
         '<td class="mono muted">'+escapeHtml(dataHora(d.primeiraEntrada))+'</td></tr>'
@@ -452,10 +455,11 @@
     const ult = regs.slice(0, 12);
     if(!ult.length){ el("t-ult").innerHTML = '<div class="empty">Sem registros ainda.</div>'; return; }
     el("t-ult").innerHTML =
-      '<table><thead><tr><th>Tipo</th><th>DAV</th><th>Operador</th><th>Quando</th></tr></thead><tbody>' +
+      '<table><thead><tr><th>Tipo</th><th>Filial</th><th>DAV</th><th>Operador</th><th>Quando</th></tr></thead><tbody>' +
       ult.map(r => {
         const t = tipoDe(r);
         return '<tr><td><span class="pill '+t+'">'+escapeHtml(t||"—")+'</span></td>'+
+          '<td class="mono">'+escapeHtml(r.filial||"—")+'</td>'+
           '<td class="dav-b">'+escapeHtml(r.dav||"—")+'</td>'+
           '<td class="trunc">'+escapeHtml(r.operador||"—")+'</td>'+
           '<td class="mono muted">'+escapeHtml(dataHora(r.registrado_em))+'</td></tr>';
