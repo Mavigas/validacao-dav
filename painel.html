@@ -257,6 +257,12 @@
   function diaLocal(iso){ const d = new Date(iso); if(isNaN(d)) return "—"; return p2(d.getDate())+"/"+p2(d.getMonth()+1)+"/"+d.getFullYear(); }
   function dataHora(iso){ const d = new Date(iso); if(isNaN(d)) return "—"; return p2(d.getDate())+"/"+p2(d.getMonth()+1)+"/"+d.getFullYear()+" "+p2(d.getHours())+":"+p2(d.getMinutes()); }
   function tipoDe(r){ return (r.tipo||"").toString().trim().toLowerCase(); }
+  function prodResumo(r){
+    const its = r.validacao_itens || [];
+    if(!its.length) return "";
+    const first = its[0].produto || "item";
+    return its.length > 1 ? (first + " +" + (its.length - 1)) : first;
+  }
 
   // ---- Auth (igual à página de validação) ----
   async function entrar(ev){
@@ -311,7 +317,7 @@
     el("t-ult").innerHTML = '<div class="loading">Carregando…</div>';
 
     const { data, error } = await sb.from(TABELA)
-      .select("registrado_em,dav,tipo,cliente,produto,operador")
+      .select("registrado_em,dav,tipo,cliente,operador,valor_total,validacao_itens(produto,qtde,valor)")
       .order("registrado_em", { ascending: false })
       .limit(5000);
 
@@ -386,7 +392,7 @@
       if(t==="entrada"){ o.entradas++; o.primeiraEntrada = r.registrado_em; } // como vem desc, o último visto é o mais antigo
       else if(t==="saida"){ o.saidas++; }
       if(!o.cliente && r.cliente) o.cliente = r.cliente;
-      if(!o.produto && r.produto) o.produto = r.produto;
+      if(!o.produto){ const pr = prodResumo(r); if(pr) o.produto = pr; }
       if(!o.ultima) o.ultima = r.registrado_em;
     }
     return m;
