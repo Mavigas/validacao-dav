@@ -57,8 +57,7 @@
 
   header.top { display: flex; align-items: center; gap: 12px; padding: 6px 2px 16px; }
   .mark {
-    width: 38px; height: 38px; border-radius: 10px; flex: none;
-    background: var(--brand); color: #fff;
+    width: 38px; height: 38px; border-radius: 10px; flex: none; background: var(--brand); color: #fff;
     display: grid; place-items: center; font-weight: 800; font-size: 18px; box-shadow: var(--shadow);
   }
   @media (prefers-color-scheme: dark){ .mark { color: #0f150e; } }
@@ -82,9 +81,7 @@
     display: flex; align-items: center; justify-content: space-between;
     padding: 13px 16px; border-bottom: 1px solid var(--line); background: var(--surface-2);
   }
-  .card-h .label {
-    font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-soft);
-  }
+  .card-h .label { font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-soft); }
   .card-b { padding: 14px 16px; }
 
   .field { margin: 0 0 12px; }
@@ -96,7 +93,6 @@
   }
   .field input:focus, .field textarea:focus { outline: 2px solid var(--brand); outline-offset: 1px; border-color: var(--brand); }
   .field textarea { resize: vertical; min-height: 52px; }
-  .field .hint { font-size: 11px; color: var(--ink-faint); margin-top: 5px; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
   @media (max-width: 440px){ .grid2 { grid-template-columns: 1fr; } }
   .req label::after { content: " *"; color: var(--warn); }
@@ -114,10 +110,32 @@
     color: var(--warn); background: none; border: 1px solid var(--line-strong); border-radius: 9px; padding: 9px; cursor: pointer;
   }
 
-  .operador-box {
-    display: flex; align-items: center; gap: 9px; font-size: 13px;
-    background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px;
-  }
+  /* Itens (produtos) — tabela única */
+  .itens-label { font-size: 12px; font-weight: 700; color: var(--ink-soft); margin: 2px 0 8px; }
+  .itens-label b { color: var(--warn); }
+  .tabela-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 11px; margin-bottom: 10px; -webkit-overflow-scrolling: touch; }
+  table.tabela-itens { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 13px; }
+  .tabela-itens th { text-align: left; font-size: 10px; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-faint); font-weight: 700; padding: 8px; background: var(--surface-2); border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .tabela-itens td { padding: 4px 6px; border-bottom: 1px solid var(--line); }
+  .tabela-itens tbody tr:last-child td { border-bottom: 0; }
+  .tabela-itens .col-n { color: var(--ink-faint); text-align: center; width: 26px; font-variant-numeric: tabular-nums; font-size: 12px; }
+  .tabela-itens th.c-cod, .tabela-itens td.c-cod { width: 78px; }
+  .tabela-itens th.c-un,  .tabela-itens td.c-un  { width: 54px; }
+  .tabela-itens th.c-qt,  .tabela-itens td.c-qt  { width: 74px; }
+  .tabela-itens th.c-vl,  .tabela-itens td.c-vl  { width: 94px; }
+  .tabela-itens th.c-rm,  .tabela-itens td.c-rm  { width: 30px; }
+  .tabela-itens input { width: 100%; font: inherit; font-size: 13px; padding: 7px 8px; border: 1px solid transparent; border-radius: 7px; background: var(--surface); color: var(--ink); -webkit-appearance: none; }
+  .tabela-itens input:hover { border-color: var(--line-strong); }
+  .tabela-itens input:focus { outline: none; border-color: var(--brand); }
+  .tabela-itens .rm { background: none; border: 0; color: var(--warn); font-size: 18px; line-height: 1; cursor: pointer; padding: 2px 4px; }
+  .tabela-itens tfoot td { padding: 9px 8px; font-weight: 700; border-top: 2px solid var(--line-strong); background: var(--surface-2); font-size: 12.5px; }
+  .tabela-itens tfoot .tfoot-label { text-align: right; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; font-size: 11px; }
+  .tabela-itens tfoot .tf-qtd { font-variant-numeric: tabular-nums; }
+  .tabela-itens tfoot .tf-val { color: var(--brand-dark); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .additem { width: 100%; font: inherit; font-weight: 700; font-size: 13.5px; color: var(--brand-dark); background: var(--surface); border: 1px dashed var(--line-strong); border-radius: 10px; padding: 11px; cursor: pointer; }
+  .additem:active { transform: translateY(1px); }
+
+  .operador-box { display: flex; align-items: center; gap: 9px; font-size: 13px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; }
   .operador-box .k { color: var(--ink-faint); font-size: 12px; }
   .operador-box .v { font-weight: 700; color: var(--brand-dark); }
 
@@ -130,9 +148,8 @@
   .btn small { font-size: 11px; font-weight: 600; opacity: .85; }
   .btn.entrada { background: var(--ok); color: #fff; }
   .btn.saida { background: var(--out); color: #fff; }
-  .btn.full { grid-column: 1 / -1; background: var(--brand); color: #fff; flex-direction: row; }
-  @media (prefers-color-scheme: dark){ .btn.entrada, .btn.saida, .btn.full { color: #0f150e; } }
-  :root[data-theme="dark"] .btn.entrada, :root[data-theme="dark"] .btn.saida, :root[data-theme="dark"] .btn.full { color: #0f150e; }
+  @media (prefers-color-scheme: dark){ .btn.entrada, .btn.saida { color: #0f150e; } }
+  :root[data-theme="dark"] .btn.entrada, :root[data-theme="dark"] .btn.saida { color: #0f150e; }
   .btn:disabled { opacity: .5; cursor: not-allowed; }
 
   .status { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700; padding: 5px 11px; border-radius: 999px; }
@@ -165,7 +182,6 @@
   .sync.ok { background: var(--ok-tint); color: var(--ok); }
   .sync.erro { background: var(--warn-tint); color: var(--warn); }
 
-  /* ---- Login ---- */
   .login-wrap { max-width: 400px; margin: 0 auto; padding: 48px 16px 40px; }
   .login-head { text-align: center; margin-bottom: 22px; }
   .login-head .mark { width: 54px; height: 54px; font-size: 26px; border-radius: 14px; margin: 0 auto 14px; }
@@ -225,7 +241,6 @@
     </div>
     <div class="card-b">
       <button class="scanbtn" id="scanbtn" onclick="abrirScanner()">📷 Ler QR Code do DAV</button>
-
       <div id="scanner-box" class="hidden">
         <div id="reader"></div>
         <button class="scan-cancel" onclick="fecharScanner()">Cancelar leitura</button>
@@ -235,16 +250,31 @@
         <label for="f-dav">DAV nº</label>
         <input id="f-dav" type="text" inputmode="numeric" placeholder="0000000000" onchange="carregarHistorico()">
       </div>
-      <div class="field">
-        <label for="f-produto">Produto</label>
-        <input id="f-produto" type="text" placeholder="Descrição do produto">
+
+      <div class="itens-label">Produtos <b>*</b></div>
+      <div class="tabela-wrap">
+        <table class="tabela-itens">
+          <thead><tr>
+            <th class="col-n">#</th>
+            <th class="c-cod">Código</th>
+            <th>Descrição</th>
+            <th class="c-un">Un.</th>
+            <th class="c-qt">Qtde</th>
+            <th class="c-vl">V. unit.</th>
+            <th class="c-rm"></th>
+          </tr></thead>
+          <tbody id="itens"></tbody>
+          <tfoot><tr>
+            <td colspan="4" class="tfoot-label">Totais</td>
+            <td class="c-qt tf-qtd" id="total-qtd">0,00</td>
+            <td class="c-vl tf-val" id="total-valor">R$ 0,00</td>
+            <td class="c-rm"></td>
+          </tr></tfoot>
+        </table>
       </div>
-      <div class="grid2">
-        <div class="field"><label for="f-codigo">Código</label><input id="f-codigo" type="text" placeholder="—"></div>
-        <div class="field"><label for="f-qtde">Quantidade</label><input id="f-qtde" type="text" placeholder="1,00 UN"></div>
-      </div>
-      <div class="field"><label for="f-valor">Valor</label><input id="f-valor" type="text" placeholder="0,00"></div>
-      <div class="field"><label for="f-cliente">Cliente</label><input id="f-cliente" type="text" placeholder="Nome do cliente"></div>
+      <button type="button" class="additem" onclick="addItem()">+ Adicionar produto</button>
+
+      <div class="field" style="margin-top:14px"><label for="f-cliente">Cliente</label><input id="f-cliente" type="text" placeholder="Nome do cliente"></div>
       <div class="grid2">
         <div class="field"><label for="f-cpf">CPF / CNPJ</label><input id="f-cpf" type="text" placeholder="—"></div>
         <div class="field"><label for="f-vendedor">Vendedor</label><input id="f-vendedor" type="text" placeholder="—"></div>
@@ -260,9 +290,7 @@
     <div class="card-h"><span class="label">Confirmar validação</span></div>
     <div class="card-b">
       <div id="sync" class="sync hidden"></div>
-      <div class="operador-box">
-        <span class="k">Operador</span><span class="v" id="op-nome">—</span>
-      </div>
+      <div class="operador-box"><span class="k">Operador</span><span class="v" id="op-nome">—</span></div>
       <div class="field">
         <label for="obs">Observação (opcional)</label>
         <textarea id="obs" placeholder="Ex.: conferido, veículo placa XXX-0000"></textarea>
@@ -296,46 +324,41 @@
 <script>
   // ==========================================================================
   //  CONFIGURAÇÃO DO BANCO CENTRAL (Supabase)
-  //  URL do projeto + chave PÚBLICA (publishable). É pública por natureza;
-  //  quem protege os dados é o login (Supabase Auth) + o RLS (só logado lê/grava).
-  //  NUNCA use a service_role aqui.
+  //  Chave PÚBLICA (publishable) — protegida por login + RLS. Nunca service_role.
   // ==========================================================================
   const SUPABASE_URL = "https://bttcakybecllhnguuzrk.supabase.co";
   const SUPABASE_KEY = "sb_publishable_MxTN-gV0B0F62Apj1ES8SQ_vGIJ_AKt";
-  const TABELA = "validacoes";
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
 
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-    auth: { persistSession: true, autoRefreshToken: true }
-  });
-
-  // --- Parâmetros vindos do QR (quando a página é aberta pelo link do DAV) ---
   const PARAMS = new URLSearchParams(location.search || "");
-  const CAMPOS = { dav:"f-dav", cliente:"f-cliente", cpf:"f-cpf", produto:"f-produto",
-                   codigo:"f-codigo", qtde:"f-qtde", valor:"f-valor",
-                   data:"f-data", hora:"f-hora", vendedor:"f-vendedor" };
+  const CAMPOS = { dav:"f-dav", cliente:"f-cliente", cpf:"f-cpf", data:"f-data", hora:"f-hora", vendedor:"f-vendedor" };
 
   let operadorNome = "";
   let jaPreencheu = false;
 
   const toastEl = document.getElementById("toast");
   let toastT;
-  function toast(msg){
-    toastEl.textContent = msg; toastEl.classList.add("show");
-    clearTimeout(toastT); toastT = setTimeout(()=>toastEl.classList.remove("show"), 2800);
-  }
+  function toast(msg){ toastEl.textContent = msg; toastEl.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(()=>toastEl.classList.remove("show"), 2800); }
   function el(id){ return document.getElementById(id); }
-  function escapeHtml(s){ return String(s||"").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+  function escapeHtml(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+  // número em formato BR (ex.: "1.234,56") -> float
+  function parseNum(v){
+    if(!v) return 0;
+    let s = String(v).replace(/[^\d.,]/g, "");
+    if(s.indexOf(".")>-1 && s.indexOf(",")>-1) s = s.replace(/\./g,"").replace(",",".");
+    else if(s.indexOf(",")>-1) s = s.replace(",",".");
+    const n = parseFloat(s); return isNaN(n) ? 0 : n;
+  }
+  function fmtBRL(n){ return n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
   // ======================= AUTENTICAÇÃO =======================
   async function entrar(ev){
     ev.preventDefault();
-    const email = el("login-email").value.trim();
-    const senha = el("login-senha").value;
-    const btn = el("login-btn");
-    const err = el("login-err");
-    err.classList.add("hidden");
-    btn.disabled = true; btn.textContent = "Entrando…";
-    const { error } = await sb.auth.signInWithPassword({ email: email, password: senha });
+    const email = el("login-email").value.trim(), senha = el("login-senha").value;
+    const btn = el("login-btn"), err = el("login-err");
+    err.classList.add("hidden"); btn.disabled = true; btn.textContent = "Entrando…";
+    const { error } = await sb.auth.signInWithPassword({ email, password: senha });
     btn.disabled = false; btn.textContent = "Entrar";
     if(error){
       let m = error.message || "Não foi possível entrar.";
@@ -343,13 +366,8 @@
       else if(/email not confirmed/i.test(m)) m = "Usuário ainda não confirmado. Peça para o administrador confirmar o cadastro.";
       err.textContent = m; err.classList.remove("hidden");
     }
-    // sucesso: o onAuthStateChange abaixo mostra o app.
   }
-
-  async function sair(){
-    await sb.auth.signOut();
-    el("login-senha").value = "";
-  }
+  async function sair(){ await sb.auth.signOut(); el("login-senha").value = ""; }
 
   function mostrarApp(user){
     operadorNome = (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.nome)) || user.email || "usuário";
@@ -358,36 +376,76 @@
     el("tela-login").classList.add("hidden");
     el("tela-app").classList.remove("hidden");
     if(!jaPreencheu && PARAMS.get("dav")){ preencherCampos(PARAMS); jaPreencheu = true; }
+    if(!document.querySelectorAll("#itens .item-card").length) addItem();
     carregarHistorico();
   }
-  function mostrarLogin(){
-    el("tela-app").classList.add("hidden");
-    el("tela-login").classList.remove("hidden");
+  function mostrarLogin(){ el("tela-app").classList.add("hidden"); el("tela-login").classList.remove("hidden"); }
+
+  sb.auth.onAuthStateChange((event, session)=>{ if(session && session.user) mostrarApp(session.user); else mostrarLogin(); });
+  sb.auth.getSession().then(({ data })=>{ if(data && data.session) mostrarApp(data.session.user); else mostrarLogin(); });
+
+  // ======================= ITENS (produtos) =======================
+  function addItem(d){
+    d = d || {};
+    const tr = document.createElement("tr");
+    tr.className = "item-row";
+    tr.innerHTML =
+      '<td class="col-n"></td>' +
+      '<td class="c-cod"><input class="it-codigo" type="text" placeholder="—"></td>' +
+      '<td><input class="it-produto" type="text" placeholder="Descrição do produto"></td>' +
+      '<td class="c-un"><input class="it-unidade" type="text" placeholder="UN"></td>' +
+      '<td class="c-qt"><input class="it-qtde" type="text" inputmode="decimal" placeholder="0,00"></td>' +
+      '<td class="c-vl"><input class="it-valor" type="text" inputmode="decimal" placeholder="0,00"></td>' +
+      '<td class="c-rm"><button type="button" class="rm" onclick="rmItem(this)" title="remover">×</button></td>';
+    el("itens").appendChild(tr);
+    tr.querySelector(".it-codigo").value  = d.codigo  || "";
+    tr.querySelector(".it-produto").value = d.produto || "";
+    tr.querySelector(".it-unidade").value = d.unidade || "";
+    tr.querySelector(".it-qtde").value    = d.qtde    || "";
+    tr.querySelector(".it-valor").value   = d.valor   || "";
+    tr.querySelector(".it-qtde").addEventListener("input", atualizarTotal);
+    tr.querySelector(".it-valor").addEventListener("input", atualizarTotal);
+    renumerar(); atualizarTotal();
+  }
+  function rmItem(btn){
+    btn.closest("tr").remove();
+    if(!document.querySelectorAll("#itens .item-row").length) addItem();
+    renumerar(); atualizarTotal();
+  }
+  function renumerar(){ document.querySelectorAll("#itens .item-row .col-n").forEach((td,i)=> td.textContent = (i+1)); }
+  function lerItens(){
+    return [...document.querySelectorAll("#itens .item-row")].map(tr => ({
+      codigo:  tr.querySelector(".it-codigo").value.trim(),
+      produto: tr.querySelector(".it-produto").value.trim(),
+      unidade: tr.querySelector(".it-unidade").value.trim(),
+      qtde:    tr.querySelector(".it-qtde").value.trim(),
+      valor:   tr.querySelector(".it-valor").value.trim()
+    })).filter(it => it.produto || it.codigo || it.qtde || it.valor || it.unidade);
+  }
+  function atualizarTotal(){
+    const itens = lerItens();
+    let somaQtd = 0, somaVal = 0;
+    itens.forEach(it => { const q = parseNum(it.qtde), v = parseNum(it.valor); somaQtd += q; somaVal += q * v; });
+    el("total-qtd").textContent = fmtBRL(somaQtd);
+    el("total-valor").textContent = "R$ " + fmtBRL(somaVal);
   }
 
-  sb.auth.onAuthStateChange((event, session)=>{
-    if(session && session.user) mostrarApp(session.user);
-    else mostrarLogin();
-  });
-  sb.auth.getSession().then(({ data })=>{
-    if(data && data.session) mostrarApp(data.session.user);
-    else mostrarLogin();
-  });
-
-  // ======================= PREENCHIMENTO =======================
+  // ======================= PREENCHIMENTO (QR / link) =======================
   function preencherCampos(params){
-    for(const chave in CAMPOS){
-      const v = params.get(chave);
-      if(v != null && v !== "") el(CAMPOS[chave]).value = v;
+    for(const chave in CAMPOS){ const v = params.get(chave); if(v != null && v !== "") el(CAMPOS[chave]).value = v; }
+    // itens: aceita um array JSON (?itens=...) ou, no formato antigo, 1 produto
+    el("itens").innerHTML = "";
+    let itens = [];
+    const raw = params.get("itens");
+    if(raw){ try { itens = JSON.parse(raw); } catch(e){ itens = []; } }
+    if(!itens.length){
+      const p = params.get("produto"), c = params.get("codigo"), q = params.get("qtde"), vl = params.get("valor");
+      if(p || c || q || vl) itens = [{ produto:p||"", codigo:c||"", qtde:q||"", valor:vl||"" }];
     }
-  }
-  function lerCampos(){
-    const o = {};
-    for(const chave in CAMPOS) o[chave] = el(CAMPOS[chave]).value.trim();
-    return o;
+    if(itens.length) itens.forEach(addItem); else addItem();
+    atualizarTotal();
   }
 
-  // Lê o conteúdo de um QR (que é a URL do DAV com ?dav=...&...) e preenche.
   function preencherDeTexto(txt){
     let params = null;
     try { params = new URL(txt).searchParams; } catch(e){
@@ -402,46 +460,40 @@
   let qr = null;
   async function abrirScanner(){
     if(typeof Html5Qrcode === "undefined"){ toast("Leitor de QR indisponível."); return; }
-    el("scanner-box").classList.remove("hidden");
-    el("scanbtn").classList.add("hidden");
+    el("scanner-box").classList.remove("hidden"); el("scanbtn").classList.add("hidden");
     try {
       qr = new Html5Qrcode("reader");
       await qr.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 230, height: 230 } },
-        (decoded)=>{
-          fecharScanner();
-          if(preencherDeTexto(decoded)){ toast("DAV lido ✓"); carregarHistorico(); }
-        }, ()=>{});
-    } catch(e){
-      fecharScanner();
-      toast("Não foi possível abrir a câmera. Permita o acesso e tente de novo.");
-    }
+        (decoded)=>{ fecharScanner(); if(preencherDeTexto(decoded)){ toast("DAV lido ✓"); carregarHistorico(); } }, ()=>{});
+    } catch(e){ fecharScanner(); toast("Não foi possível abrir a câmera. Permita o acesso e tente de novo."); }
   }
   async function fecharScanner(){
     try { if(qr){ await qr.stop(); qr.clear(); } } catch(e){}
-    qr = null;
-    el("scanner-box").classList.add("hidden");
-    el("scanbtn").classList.remove("hidden");
+    qr = null; el("scanner-box").classList.add("hidden"); el("scanbtn").classList.remove("hidden");
   }
 
   // ======================= REGISTRAR =======================
-  function setSync(estado, msg){
-    const s = el("sync"); s.classList.remove("hidden"); s.className = "sync " + estado; s.textContent = msg;
-  }
+  function setSync(estado, msg){ const s = el("sync"); s.classList.remove("hidden"); s.className = "sync " + estado; s.textContent = msg; }
 
   async function registrar(tipo){
-    const d = lerCampos();
-    if(!d.dav){ toast("Informe o número do DAV."); el("f-dav").focus(); return; }
+    const dav = el("f-dav").value.trim();
+    if(!dav){ toast("Informe o número do DAV."); el("f-dav").focus(); return; }
+    const itens = lerItens();
+    if(!itens.length){ toast("Adicione ao menos um produto."); return; }
 
     el("btn-entrada").disabled = true; el("btn-saida").disabled = true;
     setSync("enviando", "Enviando para o banco central…");
 
-    const linha = {
-      dav: d.dav, tipo: tipo, operador: operadorNome, observacao: el("obs").value.trim(),
-      cliente: d.cliente, cpf: d.cpf, produto: d.produto, codigo: d.codigo,
-      qtde: d.qtde, valor: d.valor, emissao_data: d.data, emissao_hora: d.hora, vendedor: d.vendedor
+    let soma = 0; itens.forEach(it => soma += parseNum(it.qtde) * parseNum(it.valor));
+    const payload = {
+      dav: dav, tipo: tipo, operador: operadorNome, observacao: el("obs").value.trim(),
+      cliente: el("f-cliente").value.trim(), cpf: el("f-cpf").value.trim(),
+      emissao_data: el("f-data").value.trim(), emissao_hora: el("f-hora").value.trim(),
+      vendedor: el("f-vendedor").value.trim(), valor_total: fmtBRL(soma),
+      itens: itens
     };
 
-    const { error } = await sb.from(TABELA).insert([linha]);
+    const { error } = await sb.rpc("registrar_validacao", { p: payload });
     el("btn-entrada").disabled = false; el("btn-saida").disabled = false;
 
     if(error){
@@ -477,8 +529,8 @@
       logEl.innerHTML = '<div class="empty">Informe ou leia um DAV para ver o histórico.</div>';
       statusEl.className = "status novo"; statusTxt.textContent = "Novo"; return;
     }
-    const { data, error } = await sb.from(TABELA)
-      .select("registrado_em,tipo,operador,observacao")
+    const { data, error } = await sb.from("validacoes")
+      .select("registrado_em,tipo,operador,observacao,valor_total,validacao_itens(produto,unidade,qtde,valor)")
       .eq("dav", dav).order("registrado_em", { ascending: true });
 
     if(error){ logEl.innerHTML = '<div class="empty">Não foi possível carregar o histórico agora.</div>'; return; }
@@ -492,12 +544,15 @@
     if(!arr.length){ logEl.innerHTML = '<div class="empty">Nenhum registro para este DAV ainda.</div>'; return; }
     logEl.innerHTML = arr.slice().reverse().map(r => {
       const t = tipoDe(r);
+      const n = (r.validacao_itens || []).length;
+      const resumo = n + " produto(s)" + (r.valor_total ? " · R$ " + r.valor_total : "");
+      const obs = r.observacao ? " — " + escapeHtml(r.observacao) : "";
       return `
       <div class="log-item">
         <span class="pill ${t}">${t}</span>
         <div class="info">
           <div class="t">${escapeHtml(r.operador||"")}</div>
-          <div class="s">${r.observacao ? escapeHtml(r.observacao) : "sem observação"}</div>
+          <div class="s">${escapeHtml(resumo)}${obs}</div>
         </div>
         <div class="log-time">${escapeHtml(normQuando(r.registrado_em))}</div>
       </div>`; }).join("");
